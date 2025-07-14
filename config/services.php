@@ -32,9 +32,9 @@ return [
     ],
 
     'google' => [
-        'client_id' => env('GOOGLE_CLIENT_ID', '339848038245-dmjm9bhi6nmluq7mus771qsq0nel8q88.apps.googleusercontent.com'),
-        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-        'redirect' => 'https://wejha-production-485b.up.railway.app/api/v1/auth/google/callback',
+        'client_id' => env('GOOGLE_CLIENT_ID', '1026659976563-h7n9hvo7mm7ddu81qrakdr3m7md1biq0.apps.googleusercontent.com'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET','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'),
+        'redirect' => env('GOOGLE_REDIRECT_URI','http://127.0.0.1:8000/api/v1/auth/google/callback'),
     ],
 
 ];
