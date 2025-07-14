@@ -34,7 +34,7 @@ return [
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID', '339848038245-dmjm9bhi6nmluq7mus771qsq0nel8q88.apps.googleusercontent.com'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
-        'redirect' => 'http://127.0.0.1:8080/api/v1/auth/google/callback',
+        'redirect' => 'https://wejha-production-485b.up.railway.app/api/v1/auth/google/callback',
     ],
 
 ];
