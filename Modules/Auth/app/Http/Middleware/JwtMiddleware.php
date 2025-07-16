@@ -25,12 +25,14 @@ class JwtMiddleware extends BaseMiddleware
             // Check if the token is a refresh token
             $payload = JWTAuth::parseToken()->getPayload();
             if (isset($payload['refresh']) && $payload['refresh']) {
-                return response()->json([
-                    'message' => 'Cannot use refresh token for authentication',
-                    'status' => 'error'
-                ], 401);
+                // Only allow refresh token on the refresh endpoint
+                if (!$request->is('api/v1/auth/refresh')) {
+                    return response()->json([
+                        'message' => 'Cannot use refresh token for authentication',
+                        'status' => 'error'
+                    ], 401);
+                }
             }
-            
             $user = JWTAuth::parseToken()->authenticate();
             if (!$user) {
                 return response()->json([

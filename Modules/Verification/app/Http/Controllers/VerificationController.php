@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use App\Mail\VerificationCodeMail;
+use App\Models\User;
 
 class VerificationController extends Controller
 {
@@ -69,6 +70,12 @@ class VerificationController extends Controller
             'email' => 'required|email',
         ]);
 
+        // Check if the email already exists in the users table
+        $existingUser = \App\Models\User::where('email', $request->email)->first();
+        if ($existingUser) {
+            return response()->json(['message' => 'Email already exists.'], 422);
+        }
+
         $code = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
         DB::table('verification_codes')->updateOrInsert(
@@ -86,7 +93,7 @@ class VerificationController extends Controller
         );
 
         // Send verification code email
-        Mail::to($request->email)->send(new VerificationCodeMail([
+        Mail::to($request->email)->queue(new VerificationCodeMail([
             'name' => $request->fname,
             'code' => $code,
             'type' => 'registration'
@@ -116,6 +123,7 @@ class VerificationController extends Controller
             return response()->json(['message' => 'Invalid or expired code.'], 422);
         }
 
+        // Mark the verification code as verified instead of deleting it
         DB::table('verification_codes')
             ->where('email', $request->email)
             ->where('type', 'registration')

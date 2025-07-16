@@ -15,5 +15,6 @@ Route::middleware(['jwt.auth'])->prefix('v1')->group(function () {
     Route::middleware(['role:admin'])->group(function () {
         Route::apiResource('roles', RoleController::class);
         Route::apiResource('permissions', PermissionController::class);
+        
     });
 });

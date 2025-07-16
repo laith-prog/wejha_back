@@ -49,7 +49,7 @@ Route::prefix('v1')->group(function () {
                 'type' => 'test'
             ];
             
-            Mail::to('test@example.com')->send(new VerificationCodeMail($emailData));
+            Mail::to('test@example.com')->queue(new VerificationCodeMail($emailData));
             
             return response()->json([
                 'message' => 'Test email sent successfully',

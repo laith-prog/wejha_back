@@ -85,7 +85,7 @@ class PasswordResetController extends Controller
             
             Log::info('Attempting to send password reset email', $emailData);
             
-            Mail::to($user->email)->send(new VerificationCodeMail($emailData));
+            Mail::to($user->email)->queue(new VerificationCodeMail($emailData));
             
             Log::info('Password reset email sent successfully');
             

@@ -102,11 +102,7 @@ class RegisterController extends Controller
                 'message' => 'Registration completed successfully',
                 'status' => 'success',
                 'data' => [
-                    'user' => $user,
-                    'access_token' => $access_token,
-                    'refresh_token' => $refresh_token,
-                    'token_type' => 'access',
-                    'expires_in' => auth('api')->factory()->getTTL() * 60
+                    'user' => $user
                 ]
             ], 201);
         } catch (\Exception $e) {
