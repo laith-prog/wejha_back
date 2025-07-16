@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Verification\Console\Commands;
+namespace Modules\Verification\app\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
