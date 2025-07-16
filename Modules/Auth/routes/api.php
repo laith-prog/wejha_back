@@ -28,6 +28,7 @@ Route::prefix('v1')->group(function () {
     Route::get('auth/google', [AuthController::class, 'redirectToGoogle']);
     Route::get('auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
     Route::get('auth/google/redirect', [AuthController::class, 'redirectToGoogle']);
+    Route::post('auth/google/mobile', [AuthController::class, 'googleMobileAuth']);
     
     // Complete profile after social authentication
     Route::post('auth/complete-profile', [AuthController::class, 'completeProfile']);

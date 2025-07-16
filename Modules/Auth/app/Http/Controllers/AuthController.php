@@ -301,6 +301,87 @@ class AuthController extends Controller
         }
     }
 
+
+    /**
+     * Handle Google authentication for mobile apps (Flutter)
+     * Accepts idToken from the app, verifies it with Google, and logs in/registers the user.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function googleMobileAuth(Request $request)
+    {
+        $request->validate([
+            'idToken' => 'required|string',
+        ]);
+
+        // Verify the idToken with Google
+        $client = new \GuzzleHttp\Client();
+        try {
+            $response = $client->get('https://oauth2.googleapis.com/tokeninfo', [
+                'query' => ['id_token' => $request->idToken]
+            ]);
+            $googleUser = json_decode($response->getBody(), true);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Invalid Google ID token',
+                'error' => $e->getMessage(),
+                'status' => 'error'
+            ], 401);
+        }
+
+        // Check if email is present and verified
+        if (empty($googleUser['email']) || empty($googleUser['email_verified']) || $googleUser['email_verified'] !== 'true') {
+            return response()->json([
+                'message' => 'Google account email not verified',
+                'status' => 'error'
+            ], 401);
+        }
+
+        // Find or create user
+        $user = \App\Models\User::where('email', $googleUser['email'])->first();
+        $isNewUser = false;
+        if (!$user) {
+            $isNewUser = true;
+            $nameParts = explode(' ', $googleUser['name'] ?? '', 2);
+            $user = \App\Models\User::create([
+                'fname' => $nameParts[0] ?? '',
+                'lname' => $nameParts[1] ?? '',
+                'email' => $googleUser['email'],
+                'password' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(16)),
+                'email_verified_at' => now(),
+                'auth_provider' => 'google',
+                'photo' => $googleUser['picture'] ?? null,
+            ]);
+        }
+
+        // Generate tokens only if user already exists
+        if ($isNewUser) {
+            return response()->json([
+                'message' => 'Google registration successful',
+                'status' => 'success',
+                'data' => [
+                    'user' => $user
+                ]
+            ]);
+        }
+
+        // Generate tokens for existing user
+        $token = $this->createTokens($user);
+
+        return response()->json([
+            'message' => 'Google login successful',
+            'status' => 'success',
+            'data' => [
+                'user' => $user,
+                'access_token' => $token['access_token'],
+                'refresh_token' => $token['refresh_token'],
+                'token_type' => 'access',
+                'expires_in' => auth('api')->factory()->getTTL() * 60
+            ]
+        ]);
+    }
+
     /**
      * Handle Google callback - process registration or login
      *
