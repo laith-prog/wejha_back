@@ -7,6 +7,8 @@ use Illuminate\Support\ServiceProvider;
 use Nwidart\Modules\Traits\PathNamespace;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use Modules\Verification\App\Console\Commands\DeleteExpiredVerificationCodes;
+use Illuminate\Console\Scheduling\Schedule;
 
 class VerificationServiceProvider extends ServiceProvider
 {
@@ -43,7 +45,9 @@ class VerificationServiceProvider extends ServiceProvider
      */
     protected function registerCommands(): void
     {
-        // $this->commands([]);
+        $this->commands([
+            DeleteExpiredVerificationCodes::class
+        ]);
     }
 
     /**
@@ -51,10 +55,10 @@ class VerificationServiceProvider extends ServiceProvider
      */
     protected function registerCommandSchedules(): void
     {
-        // $this->app->booted(function () {
-        //     $schedule = $this->app->make(Schedule::class);
-        //     $schedule->command('inspire')->hourly();
-        // });
+        $this->app->booted(function () {
+            $schedule = $this->app->make(Schedule::class);
+            $schedule->command('verification:delete-expired-codes')->hourly();
+        });
     }
 
     /**

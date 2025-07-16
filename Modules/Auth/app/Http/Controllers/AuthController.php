@@ -3,15 +3,14 @@
 namespace Modules\Auth\Http\Controllers;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Laravel\Socialite\Facades\Socialite;
-use Illuminate\Support\Str;
-use Exception;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
+use Laravel\Socialite\Facades\Socialite;
+use App\Models\User;
+use Exception;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
 
@@ -93,7 +92,7 @@ class AuthController extends Controller
                         'step1' => 'Make GET request to /api/v1/auth/google',
                         'step2' => 'Open the returned redirect_url in browser',
                         'step3' => 'Select Google account and authorize',
-                        'step4' => 'You will be automatically registered or logged in'
+                        'step4' => 'You will be automatically ered or logged in'
                     ]
                 ]
             ]
@@ -122,14 +121,14 @@ class AuthController extends Controller
 
         // Check email
         $user = User::where('email', $request->email)->first();
-        
+
         if (!$user) {
             return response()->json([
                 'message' => 'User not found with this email',
                 'status' => 'error'
             ], 401);
         }
-        
+
         // Check password
         if (!Hash::check($request->password, $user->password)) {
             return response()->json([
@@ -141,12 +140,32 @@ class AuthController extends Controller
         try {
             // Create tokens
             $token = $this->createTokens($user);
-            
+
+            // Prepare user data with role info
+            $userData = [
+                'id' => $user->id,
+                'fname' => $user->fname,
+                'lname' => $user->lname,
+                'email' => $user->email,
+                'email_verified_at' => $user->email_verified_at,
+                'phone' => $user->phone,
+                'gender' => $user->gender,
+                'birthday' => $user->birthday,
+                'auth_provider' => $user->auth_provider,
+                'photo' => $user->photo,
+                'role_id' => $user->role_id,
+                'role_name' => $user->role ? $user->role->name : null,
+                'refresh_token_expires_at' => $user->refresh_token_expires_at,
+                'created_at' => $user->created_at,
+                'updated_at' => $user->updated_at,
+                'deleted_at' => $user->deleted_at,
+            ];
+
             return response()->json([
                 'message' => 'Login successful',
                 'status' => 'success',
                 'data' => [
-                    'user' => $user,
+                    'user' => $userData,
                     'access_token' => $token['access_token'],
                     'refresh_token' => $token['refresh_token'],
                     'token_type' => 'access',
@@ -163,7 +182,7 @@ class AuthController extends Controller
 
     /**
      * Set or reset password for an account
-     * 
+     *
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
@@ -184,22 +203,22 @@ class AuthController extends Controller
 
         try {
             $user = User::where('email', $request->email)->first();
-            
+
             if (!$user) {
                 return response()->json([
                     'message' => 'User not found with this email',
                     'status' => 'error'
                 ], 404);
             }
-            
+
             // Update the password
             $user->update([
                 'password' => Hash::make($request->password)
             ]);
-    
+
             // Generate token
             $token = $this->createTokens($user);
-    
+
             return response()->json([
                 'message' => 'Password set successfully',
                 'status' => 'success',
@@ -233,7 +252,7 @@ class AuthController extends Controller
         if ($request->has('code')) {
             return $this->handleGoogleCallback($request);
         }
-        
+
         // Otherwise, generate a redirect URL for Google authentication
         try {
             $redirectUrl = Socialite::driver('google')
@@ -242,7 +261,7 @@ class AuthController extends Controller
                 ->stateless()
                 ->redirect()
                 ->getTargetUrl();
-            
+
             return response()->json([
                 'message' => 'Please open this URL in your browser to continue with Google authentication',
                 'redirect_url' => $redirectUrl
@@ -266,7 +285,7 @@ class AuthController extends Controller
                 ->with(['prompt' => 'select_account']) // Force account selection
                 ->redirect()
                 ->getTargetUrl();
-                
+
             // Return JSON response with redirect URL instead of redirecting
             return response()->json([
                 'status' => 'success',
@@ -298,22 +317,30 @@ class AuthController extends Controller
                     'error' => $request->get('error')
                 ], 400);
             }
-            
+
+            // Debug information
+            Log::info('Google OAuth Callback Debug', [
+                'client_id' => config('services.google.client_id'),
+                'redirect' => config('services.google.redirect'),
+                'code' => $request->get('code'),
+                'request_url' => $request->fullUrl()
+            ]);
+
             // Get user data from Google
             $googleUser = Socialite::driver('google')->stateless()->user();
-            
+
             // Check if user exists
             $user = User::where('email', $googleUser->getEmail())->first();
-            
+
             $isNewUser = false;
-            
+
             if (!$user) {
                 // This is a registration scenario
                 $isNewUser = true;
-                
+
                 // Extract name parts
                 $nameParts = $this->extractNameParts($googleUser->getName());
-                
+
                 // Create user
                 $user = User::create([
                     'fname' => $nameParts['first_name'],
@@ -323,8 +350,25 @@ class AuthController extends Controller
                     'email_verified_at' => now(),
                     'auth_provider' => 'google',
                     'photo' => $googleUser->getAvatar(),
-                    'role_id' => 3, // Default to customer role
+                    'type' => null, // No type until role is set
                 ]);
+                
+                // For new users, return without tokens
+                return response()->json([
+                    'message' => 'Google registration successful',
+                    'status' => 'success',
+                    'is_new_user' => true,
+                    'google_user_data' => [
+                        'id' => $googleUser->getId(),
+                        'name' => $googleUser->getName(),
+                        'email' => $googleUser->getEmail(),
+                        'avatar' => $googleUser->getAvatar(),
+                    ],
+                    'data' => [
+                        'user' => $user
+                    ]
+                ]);
+                
             } else {
                 // This is a login scenario
                 // Update existing user with Google info if they're using Google auth
@@ -334,38 +378,38 @@ class AuthController extends Controller
                         'photo' => $googleUser->getAvatar() ?: $user->photo,
                         'email_verified_at' => $user->email_verified_at ?? now(),
                     ];
-                    
+
                     // Don't overwrite role_id if it's already set
-                    if (!$user->role_id) {
-                        $updateData['role_id'] = 3; // Default to customer role if not set
-                    }
-                    
+                    // if (!$user->role_id) {
+                    //     $updateData['role_id'] = 3; // Removed default role assignment
+                    // }
+
                     $user->update($updateData);
                 }
+                
+                // Generate token for existing users only
+                $token = $this->createTokens($user);
+                
+                return response()->json([
+                    'message' => 'Google login successful',
+                    'status' => 'success',
+                    'is_new_user' => false,
+                    'google_user_data' => [
+                        'id' => $googleUser->getId(),
+                        'name' => $googleUser->getName(),
+                        'email' => $googleUser->getEmail(),
+                        'avatar' => $googleUser->getAvatar(),
+                    ],
+                    'data' => [
+                        'user' => $user,
+                        'access_token' => $token['access_token'],
+                        'refresh_token' => $token['refresh_token'],
+                        'token_type' => 'access',
+                        'expires_in' => auth('api')->factory()->getTTL() * 60
+                    ]
+                ]);
             }
-            
-            // Generate token
-            $token = $this->createTokens($user);
-            
-            return response()->json([
-                'message' => $isNewUser ? 'Google registration successful' : 'Google login successful',
-                'status' => 'success',
-                'is_new_user' => $isNewUser,
-                'google_user_data' => [
-                    'id' => $googleUser->getId(),
-                    'name' => $googleUser->getName(),
-                    'email' => $googleUser->getEmail(),
-                    'avatar' => $googleUser->getAvatar(),
-                ],
-                'data' => [
-                    'user' => $user,
-                    'access_token' => $token['access_token'],
-                    'refresh_token' => $token['refresh_token'],
-                    'token_type' => 'access',
-                    'expires_in' => auth('api')->factory()->getTTL() * 60
-                ]
-            ]);
-            
+
         } catch (Exception $e) {
             return response()->json([
                 'message' => 'Google authentication failed',
@@ -410,7 +454,7 @@ class AuthController extends Controller
             'status' => 'success'
         ]);
     }
-    
+
     /**
      * Extract first and last name from a full name.
      *
@@ -448,10 +492,10 @@ class AuthController extends Controller
         try {
             // Set the refresh token
             JWTAuth::setToken($request->refresh_token);
-            
+
             // Verify the token
             $payload = JWTAuth::getPayload();
-            
+
             // Check if token is a refresh token
             if (!isset($payload['refresh']) || !$payload['refresh']) {
                 return response()->json([
@@ -459,20 +503,20 @@ class AuthController extends Controller
                     'status' => 'error'
                 ], 401);
             }
-            
+
             // Get user from token
             $user = User::find($payload['sub']);
-            
+
             if (!$user) {
                 return response()->json([
                     'message' => 'User not found',
                     'status' => 'error'
                 ], 404);
             }
-            
+
             // Generate new tokens
             $tokens = $this->createTokens($user);
-            
+
             return response()->json([
                 'message' => 'Token refreshed successfully',
                 'status' => 'success',
@@ -491,7 +535,7 @@ class AuthController extends Controller
             ], 401);
         }
     }
-    
+
     /**
      * Create access and refresh tokens for a user
      *
@@ -501,18 +545,18 @@ class AuthController extends Controller
     private function createTokens(User $user)
     {
         // Login the user to get the token
-        Auth::guard('api')->login($user);
-        
+        auth('api')->login($user);
+
         // Create access token
         $access_token = JWTAuth::fromUser($user);
-        
+
         // Create refresh token with custom claims
         $refresh_token = JWTAuth::customClaims([
             'sub' => $user->id,
             'refresh' => true,
             'exp' => now()->addDays(30)->timestamp // 30 days expiry for refresh token
         ])->fromUser($user);
-        
+
         return [
             'access_token' => $access_token,
             'refresh_token' => $refresh_token
@@ -529,11 +573,13 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'user_id' => 'required|string|exists:users,id',
+            'lname' => 'nullable|string',
             'role_id' => 'required|exists:roles,id',
             'phone' => 'nullable|string',
             'gender' => 'nullable|in:male,female,other',
             'birthday' => 'nullable|date',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            
         ]);
 
         if ($validator->fails()) {
@@ -545,18 +591,24 @@ class AuthController extends Controller
 
         try {
             $user = User::findOrFail($request->user_id);
-            
+
             // Update user with role_id and other provided fields
             $updateData = [
-                'role_id' => $request->role_id
+                'role_id' => $request->role_id,
+                'type' => null,
             ];
-            
+            // Set type to role name if role exists
+            $role = \Modules\User\Models\Role::find($request->role_id);
+            if ($role) {
+                $updateData['type'] = $role->name;
+            }
+
             // Handle photo upload if provided
             if ($request->hasFile('photo')) {
                 $photoPath = $request->file('photo')->store('user_photos', 'public');
                 $updateData['photo'] = asset('storage/' . $photoPath); // Get the full URL
             }
-            
+
             // Add any other optional fields if provided
             $optionalFields = ['phone', 'gender', 'birthday'];
             foreach ($optionalFields as $field) {
@@ -564,9 +616,9 @@ class AuthController extends Controller
                     $updateData[$field] = $request->$field;
                 }
             }
-            
+
             $user->update($updateData);
-            
+
             return response()->json([
                 'message' => 'Profile completed successfully',
                 'status' => 'success',
@@ -584,7 +636,7 @@ class AuthController extends Controller
                     ]
                 ]
             ]);
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to complete profile',
