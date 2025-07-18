@@ -1,6 +1,6 @@
 [build]
 builder = "nixpacks"
-buildCommand = "php artisan queue:table && php artisan migrate --force"
+buildCommand = "php artisan migrate --force"
 
 [deploy]
 startCommand = "php artisan config:cache && php artisan route:cache"
