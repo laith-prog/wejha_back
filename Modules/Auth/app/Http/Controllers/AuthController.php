@@ -704,6 +704,8 @@ class AuthController extends Controller
                 }
             }
 
+            $tokens = $this->createTokens($user);
+
             $user->update($updateData);
 
             return response()->json([
@@ -720,7 +722,11 @@ class AuthController extends Controller
                         'birthday' => $user->birthday,
                         'role_id' => $user->role_id,
                         'photo' => $user->photo
-                    ]
+                    ],
+                    'access_token' => $tokens['access_token'],
+                    'refresh_token' => $tokens['refresh_token'],
+                    'token_type' => 'access',
+                    'expires_in' => auth('api')->factory()->getTTL() * 60
                 ]
             ]);
 
