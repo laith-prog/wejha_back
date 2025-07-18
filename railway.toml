@@ -6,8 +6,15 @@ buildCommand = "php artisan migrate --force"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 
-[worker.deploy]
+[[services]]
+name = "web"
+internal_port = 8000
+command = "php -S 0.0.0.0:8000 -t public"
+
+[[services]]
+name = "worker"
 command = "php artisan queue:work --tries=3 --verbose"
-healthcheckPath = "/"
-healthcheckTimeout = 100
-restartPolicyType = "on_failure" 
+healthcheck_path = "/"
+healthcheck_timeout = 100
+restart_policy_type = "on_failure"
+restart_policy_max_retries = 10 
