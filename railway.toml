@@ -3,18 +3,9 @@ builder = "nixpacks"
 buildCommand = "php artisan migrate --force"
 
 [deploy]
+startCommand = "php -S 0.0.0.0:$PORT -t public"
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 10
 
-[[services]]
-name = "web"
-internal_port = 8000
-command = "php -S 0.0.0.0:8000 -t public"
-
-[[services]]
-name = "worker"
-command = "php artisan queue:work --tries=3 --verbose"
-healthcheck_path = "/"
-healthcheck_timeout = 100
-restart_policy_type = "on_failure"
-restart_policy_max_retries = 10 
+[worker]
+startCommand = "php artisan queue:work --tries=3 --verbose" 

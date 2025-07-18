@@ -53,3 +53,9 @@ Route::get('/queue-status', function () {
     
     return implode("<br>", $output);
 });
+
+Route::get('/start-queue-worker', function () {
+    // Start the queue worker in the background
+    exec('nohup php artisan queue:work --tries=3 --verbose > /dev/null 2>&1 &');
+    return redirect('/queue-status');
+});
