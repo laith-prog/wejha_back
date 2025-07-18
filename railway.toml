@@ -4,4 +4,7 @@ buildCommand = "php artisan migrate --force"
 
 [deploy]
 restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 10 
+restartPolicyMaxRetries = 10
+
+[worker]
+command = "php artisan queue:work --sleep=3 --tries=3 --verbose" 
