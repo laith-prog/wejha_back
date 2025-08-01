@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Modules\User\Database\Seeders\RolesTableSeeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -21,7 +22,10 @@ class DatabaseSeeder extends Seeder
             'fname' => 'Test',
             'lname' => 'User',
             'email' => 'test@example.com',
-            'role_id' => 3, // Customer role
+            'role_id' => 3,
+            'password' => Hash::make('Password123'), // <-- This is required!
         ]);
+
+        $this->call(\Modules\Community\Database\Seeders\ListingCategorySeeder::class);
     }
 }

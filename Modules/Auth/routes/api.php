@@ -11,9 +11,10 @@ use App\Mail\VerificationCodeMail;
 Route::prefix('v1')->group(function () {
     // Get available authentication methods
     Route::get('auth/methods', [AuthController::class, 'loginMethods']);
-    
+    Route::post('auth/google/mobile', [AuthController::class, 'googleMobileAuth']);
     // Debug endpoint to check user information
     Route::post('auth/check-user', [AuthController::class, 'checkUser']);
+    Route::post('/auth/google/firebase', [AuthController::class, 'firebaseGoogleAuth']);
     
     // Manual registration
     Route::post('register/complete', [RegisterController::class, 'completeRegistration']);
@@ -28,7 +29,8 @@ Route::prefix('v1')->group(function () {
     Route::get('auth/google', [AuthController::class, 'redirectToGoogle']);
     Route::get('auth/google/callback', [AuthController::class, 'handleGoogleCallback']);
     Route::get('auth/google/redirect', [AuthController::class, 'redirectToGoogle']);
-    Route::post('auth/google/mobile', [AuthController::class, 'googleMobileAuth']);
+
+    Route::post('/auth/google/firebase', [AuthController::class, 'firebaseGoogleAuth']);
     
     // Complete profile after social authentication
     Route::post('auth/complete-profile', [AuthController::class, 'completeProfile']);
